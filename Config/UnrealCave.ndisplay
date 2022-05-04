@@ -6,7 +6,7 @@
 		"assetPath": "/Game/Configuration/UnrealCave.UnrealCave",
 		"misc":
 		{
-			"bFollowLocalPlayerCamera": true,
+			"bFollowLocalPlayerCamera": false,
 			"bExitOnEsc": true
 		},
 		"scene":
@@ -36,7 +36,7 @@
 					{
 						"x": 0,
 						"y": 0,
-						"z": 0
+						"z": 150
 					},
 					"rotation":
 					{
@@ -52,7 +52,7 @@
 					{
 						"x": 150,
 						"y": 0,
-						"z": 150
+						"z": 0
 					},
 					"rotation":
 					{
@@ -68,7 +68,7 @@
 					{
 						"x": 0,
 						"y": 0,
-						"z": 0
+						"z": -150
 					},
 					"rotation":
 					{
@@ -84,7 +84,7 @@
 					{
 						"x": 0,
 						"y": -150,
-						"z": 150
+						"z": 0
 					},
 					"rotation":
 					{
@@ -100,7 +100,7 @@
 					{
 						"x": 0,
 						"y": 150,
-						"z": 150
+						"z": 0
 					},
 					"rotation":
 					{
@@ -122,7 +122,7 @@
 					{
 						"x": 0,
 						"y": 0,
-						"z": 160
+						"z": 180
 					},
 					"rotation":
 					{
