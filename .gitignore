@@ -73,8 +73,4 @@ Plugins/*/Intermediate/*
 # Cache files for the editor to use
 DerivedDataCache/*
 
-!Plugins/NeoKinectUnreal/**/*
-Plugins/NeoKinectUnreal/**/*.gen.cpp
-Plugins/NeoKinectUnreal/**/*.generated.h
-Plugins/NeoKinectUnreal/**/*.Headers
-Plugins/NeoKinectUnreal/**/*.cpp.obj
+!Plugins/NeoKinectUnreal/**/*.lib
