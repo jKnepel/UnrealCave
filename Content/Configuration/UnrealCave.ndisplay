@@ -20,7 +20,7 @@
 					{
 						"x": 0,
 						"y": 0,
-						"z": 150
+						"z": 117.5
 					},
 					"rotation":
 					{
@@ -52,7 +52,7 @@
 					{
 						"x": 0,
 						"y": 0,
-						"z": -150
+						"z": -117.5
 					},
 					"rotation":
 					{
@@ -111,12 +111,12 @@
 				},
 				"Kinect":
 				{
-					"parentId": "",
+					"parentId": "cave_origin",
 					"location":
 					{
 						"x": 150,
 						"y": 0,
-						"z": 310
+						"z": 240
 					},
 					"rotation":
 					{
@@ -174,7 +174,7 @@
 					"size":
 					{
 						"width": 300,
-						"height": 300
+						"height": 235
 					},
 					"parentId": "display_left",
 					"location":
@@ -195,7 +195,7 @@
 					"size":
 					{
 						"width": 300,
-						"height": 300
+						"height": 235
 					},
 					"parentId": "display_front",
 					"location":
@@ -216,7 +216,7 @@
 					"size":
 					{
 						"width": 300,
-						"height": 300
+						"height": 235
 					},
 					"parentId": "display_right",
 					"location":
@@ -259,7 +259,7 @@
 		{
 			"masterNode":
 			{
-				"id": "node_front_left",
+				"id": "htw_cave",
 				"ports":
 				{
 					"ClusterSync": 41001,
@@ -296,79 +296,16 @@
 			},
 			"nodes":
 			{
-				"node_left_left":
+				"htw_cave":
 				{
 					"host": "127.0.0.1",
 					"sound": true,
-					"fullScreen": true,
+					"fullScreen": false,
 					"window":
 					{
 						"x": 0,
 						"y": 0,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
-						"vp_left_left":
-						{
-							"camera": "DefaultViewPoint",
-							"bufferRatio": 1,
-							"gPUIndex": -1,
-							"textureShare":
-							{
-								"bIsEnabled": false,
-								"syncPolicy_Connection": 0,
-								"syncPolicy_Frame": 0,
-								"syncPolicy_Texture": 0
-							},
-							"overscan":
-							{
-								"mode": "none",
-								"left": 0,
-								"right": 0,
-								"top": 0,
-								"bottom": 0,
-								"oversize": true
-							},
-							"region":
-							{
-								"x": 0,
-								"y": 0,
-								"w": 1920,
-								"h": 1080
-							},
-							"projectionPolicy":
-							{
-								"type": "Mesh",
-								"parameters":
-								{
-									"mesh_component": "scr_left"
-								}
-							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_front_left":
-				{
-					"host": "127.0.0.1",
-					"sound": false,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 1920,
-						"y": 0,
-						"w": 1920,
+						"w": 15360,
 						"h": 1080
 					},
 					"postprocess":
@@ -380,7 +317,7 @@
 						{
 							"camera": "DefaultViewPoint",
 							"bufferRatio": 1,
-							"gPUIndex": -1,
+							"gPUIndex": 0,
 							"textureShare":
 							{
 								"bIsEnabled": false,
@@ -412,38 +349,12 @@
 									"screen": "scr_front"
 								}
 							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_right_left":
-				{
-					"host": "127.0.0.1",
-					"sound": false,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 3840,
-						"y": 0,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
-						"vp_right_left":
+						},
+						"vp_front_right":
 						{
-							"camera": "DefaultViewPoint",
+							"camera": "Default View Point Right",
 							"bufferRatio": 1,
-							"gPUIndex": -1,
+							"gPUIndex": 0,
 							"textureShare":
 							{
 								"bIsEnabled": false,
@@ -462,7 +373,81 @@
 							},
 							"region":
 							{
-								"x": 0,
+								"x": 1920,
+								"y": 0,
+								"w": 1920,
+								"h": 1080
+							},
+							"projectionPolicy":
+							{
+								"type": "simple",
+								"parameters":
+								{
+									"screen": "scr_front"
+								}
+							}
+						},
+						"vp_left_left":
+						{
+							"camera": "DefaultViewPoint",
+							"bufferRatio": 1,
+							"gPUIndex": 0,
+							"textureShare":
+							{
+								"bIsEnabled": false,
+								"syncPolicy_Connection": 0,
+								"syncPolicy_Frame": 0,
+								"syncPolicy_Texture": 0
+							},
+							"overscan":
+							{
+								"mode": "none",
+								"left": 0,
+								"right": 0,
+								"top": 0,
+								"bottom": 0,
+								"oversize": true
+							},
+							"region":
+							{
+								"x": 3840,
+								"y": 0,
+								"w": 1920,
+								"h": 1080
+							},
+							"projectionPolicy":
+							{
+								"type": "simple",
+								"parameters":
+								{
+									"screen": "scr_left"
+								}
+							}
+						},
+						"vp_right_left":
+						{
+							"camera": "DefaultViewPoint",
+							"bufferRatio": 1,
+							"gPUIndex": 1,
+							"textureShare":
+							{
+								"bIsEnabled": false,
+								"syncPolicy_Connection": 0,
+								"syncPolicy_Frame": 0,
+								"syncPolicy_Texture": 0
+							},
+							"overscan":
+							{
+								"mode": "none",
+								"left": 0,
+								"right": 0,
+								"top": 0,
+								"bottom": 0,
+								"oversize": true
+							},
+							"region":
+							{
+								"x": 7680,
 								"y": 0,
 								"w": 1920,
 								"h": 1080
@@ -475,38 +460,12 @@
 									"screen": "scr_right"
 								}
 							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_floor_left":
-				{
-					"host": "127.0.0.1",
-					"sound": false,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 5760,
-						"y": 0,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
+						},
 						"vp_floor_left":
 						{
 							"camera": "DefaultViewPoint",
 							"bufferRatio": 1,
-							"gPUIndex": -1,
+							"gPUIndex": 1,
 							"textureShare":
 							{
 								"bIsEnabled": false,
@@ -525,7 +484,7 @@
 							},
 							"region":
 							{
-								"x": 0,
+								"x": 11520,
 								"y": 0,
 								"w": 1920,
 								"h": 1080
@@ -538,38 +497,12 @@
 									"screen": "scr_floor"
 								}
 							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_left_right":
-				{
-					"host": "127.0.0.1",
-					"sound": true,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 0,
-						"y": 1080,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
+						},
 						"vp_left_right":
 						{
 							"camera": "Default View Point Right",
 							"bufferRatio": 1,
-							"gPUIndex": -1,
+							"gPUIndex": 0,
 							"textureShare":
 							{
 								"bIsEnabled": false,
@@ -588,70 +521,7 @@
 							},
 							"region":
 							{
-								"x": 0,
-								"y": 0,
-								"w": 1920,
-								"h": 1080
-							},
-							"projectionPolicy":
-							{
-								"type": "Mesh",
-								"parameters":
-								{
-									"mesh_component": "scr_left"
-								}
-							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_front_right":
-				{
-					"host": "127.0.0.1",
-					"sound": false,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 1920,
-						"y": 1080,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
-						"vp_front_right":
-						{
-							"camera": "Default View Point Right",
-							"bufferRatio": 1,
-							"gPUIndex": -1,
-							"textureShare":
-							{
-								"bIsEnabled": false,
-								"syncPolicy_Connection": 0,
-								"syncPolicy_Frame": 0,
-								"syncPolicy_Texture": 0
-							},
-							"overscan":
-							{
-								"mode": "none",
-								"left": 0,
-								"right": 0,
-								"top": 0,
-								"bottom": 0,
-								"oversize": true
-							},
-							"region":
-							{
-								"x": 0,
+								"x": 5760,
 								"y": 0,
 								"w": 1920,
 								"h": 1080
@@ -661,41 +531,15 @@
 								"type": "simple",
 								"parameters":
 								{
-									"screen": "scr_front"
+									"screen": "scr_left"
 								}
 							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_right_right":
-				{
-					"host": "127.0.0.1",
-					"sound": false,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 3840,
-						"y": 1080,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
+						},
 						"vp_right_right":
 						{
 							"camera": "Default View Point Right",
 							"bufferRatio": 1,
-							"gPUIndex": -1,
+							"gPUIndex": 1,
 							"textureShare":
 							{
 								"bIsEnabled": false,
@@ -714,7 +558,7 @@
 							},
 							"region":
 							{
-								"x": 0,
+								"x": 9600,
 								"y": 0,
 								"w": 1920,
 								"h": 1080
@@ -727,38 +571,12 @@
 									"screen": "scr_right"
 								}
 							}
-						}
-					},
-					"outputRemap":
-					{
-						"bEnable": false,
-						"dataSource": "mesh",
-						"staticMeshAsset": "",
-						"externalFile": ""
-					}
-				},
-				"node_floor_right":
-				{
-					"host": "127.0.0.1",
-					"sound": false,
-					"fullScreen": true,
-					"window":
-					{
-						"x": 5760,
-						"y": 1080,
-						"w": 1920,
-						"h": 1080
-					},
-					"postprocess":
-					{
-					},
-					"viewports":
-					{
+						},
 						"vp_floor_right":
 						{
 							"camera": "Default View Point Right",
 							"bufferRatio": 1,
-							"gPUIndex": -1,
+							"gPUIndex": 1,
 							"textureShare":
 							{
 								"bIsEnabled": false,
@@ -777,7 +595,7 @@
 							},
 							"region":
 							{
-								"x": 0,
+								"x": 13440,
 								"y": 0,
 								"w": 1920,
 								"h": 1080
