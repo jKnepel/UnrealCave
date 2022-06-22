@@ -19,45 +19,45 @@ public:
 	 * Device Info
 	 */
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int ProductId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int VendorId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int InterfaceNumber;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int ReleaseNumber;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		FString ManufacturerString;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		FString BluetoothPath;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		FString ProductString;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		FString SerialNumber;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int ControllerId;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int Usage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int UsagePage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		bool IsLeft;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		bool IsConnected;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		bool IsAttached;
 };

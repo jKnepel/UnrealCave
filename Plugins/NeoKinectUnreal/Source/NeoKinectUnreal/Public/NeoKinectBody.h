@@ -1,4 +1,4 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #pragma once
 
@@ -7,7 +7,11 @@
 
 #include "NeoKinectBody.generated.h"
 
-using namespace NeoKinect;
+namespace NeoKinect
+{
+	struct KinectBody;
+	class KinectSensor;
+}
 
 /**
  * Joint properties.
@@ -160,7 +164,7 @@ public:
 	* @return Current Hand state.
 	*/
 	UFUNCTION(BlueprintPure, Category = "SamrtKinect|Body|Hands")
-	EKinectHandState GetHandState(EKinectBodySide Hand);
+	EKinectHandState GetHandState(EKinectBodySide Hand) const;
 
 	/**
 	* Get Left/Right hand tracking state as execution pins.
@@ -179,7 +183,7 @@ public:
 	* @return Current Hand tracking state.
 	*/
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Body|Hands")
-	EKinectTrackingState GetHandConfidence(EKinectBodySide Hand);
+	EKinectTrackingState GetHandConfidence(EKinectBodySide Hand) const;
 
 	/**
 	* Get body lean tracking confidence as execution pins.
@@ -287,7 +291,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Body|Joints", Meta = (Keywords = "pointing direction lookat"))
 	float JointDotVector(EKinectJointType Joint, FVector Vector);
 
-	void UpdateFromKinectBody(const KinectBody& kBody, const KinectSensor& Sensor);
+	void UpdateFromKinectBody(const NeoKinect::KinectBody& kBody, const NeoKinect::KinectSensor& Sensor);
 
 	void Reset();
 };

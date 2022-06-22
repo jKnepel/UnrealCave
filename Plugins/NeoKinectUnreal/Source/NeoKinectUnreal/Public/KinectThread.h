@@ -1,18 +1,14 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #pragma once
-
-#include <atomic>
 
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "NeoKinect.h"
 #include "Windows/HideWindowsPlatformTypes.h"
-
-#include "HAL/Runnable.h"
-#include "HAL/RunnableThread.h"
-#include "HAL/ThreadSafeCounter.h"
-#include "CoreMinimal.h"
 #include "NeoKinectEnums.h"
+
+#include "CoreMinimal.h"
+#include "HAL/Runnable.h"
 
 using namespace NeoKinect;
 
@@ -20,22 +16,21 @@ DECLARE_LOG_CATEGORY_CLASS(KinectThreadLog, Log, All);
 
 struct FThreadFrameBuffer
 {
-	KinectFrameType FrameType;
-	KinectPixelFormat PixelFormat;
-	KinectCoordinateSpace TargetSpace;
-	bool bRemapped;
+	KinectFrameType FrameType = KinectFrameType::Count;
+	KinectPixelFormat PixelFormat = KinectPixelFormat::None;
+	KinectCoordinateSpace TargetSpace = KinectCoordinateSpace::Count;
+	bool bRemapped = false;
 
-	FThreadFrameBuffer();
 	~FThreadFrameBuffer();
 
 	void Configure(KinectFrameType Frame, KinectPixelFormat PixelFormat, KinectCoordinateSpace Space, bool IsRemapped);
 	bool AllocateBuffers(uint32 Size);
 	void DeallocateBuffers();
-	bool IsAllocated();
+	bool IsAllocated() const;
 
 	// Returns an updated buffer. If it was already consumed, return nullptr
 	const uint8* GetReadBuffer(bool bConsume = true);
-	uint8* GetWriteBuffer();
+	uint8* GetWriteBuffer() const;
 
 	void SetDirty();
 
@@ -47,9 +42,9 @@ struct FThreadFrameBuffer
 	void UnlockWrite();
 
 private:
-	std::atomic_bool bIsNew;
-	uint8 *Buffer;
-	uint8 *BackBuffer;
+	TAtomic<bool> bIsNew = false;
+	uint8 *Buffer = nullptr;
+	uint8 *BackBuffer = nullptr;
 	FCriticalSection ReadMutex;
 	FCriticalSection WriteMutex;
 
@@ -87,7 +82,7 @@ public:
 	// Constructor
 	FKinectThread(KinectSensor *pSensor);
 	// Destructor
-	~FKinectThread();
+	virtual ~FKinectThread() override;
 
 	// Frames data. These control which frame buffers should or not be updated.
 	static FThreadFrameBuffer FrameBuffers[static_cast<uint64>(EKinectFrame::Count)];
@@ -122,9 +117,9 @@ public:
 	const KinectFace *GetFacesData();
 
 	// Begin FRunnable interface
-	virtual bool Init();
-	virtual uint32 Run();
-	virtual void Stop();
-	virtual void Exit();
+	virtual bool Init() override;
+	virtual uint32 Run() override;
+	virtual void Stop() override;
+	virtual void Exit() override;
 	// End FRunnable interface
 };

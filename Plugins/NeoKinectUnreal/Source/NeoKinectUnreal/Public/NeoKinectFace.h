@@ -1,13 +1,22 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #pragma once
 
-#include "NeoKinectBody.h"
+#include "NeoKinectEnums.h"
+
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "Kinect.Face.h"
+#include "Windows/HideWindowsPlatformTypes.h"
 
 #include "NeoKinectFace.generated.h"
 
-using namespace NeoKinect;
+class UNeoKinectBody;
 
+namespace NeoKinect
+{
+	struct KinectFace;
+	struct KinectFacePoints;
+}
 
 /**
 * Describes the edges of a rectangle in a texture (int values)
@@ -57,7 +66,7 @@ struct FFacePoints2D
 	UPROPERTY(BlueprintReadOnly, Category = "NeoKinect|Face")
 	FVector2D RightMouthCorner;
 
-	void FromKinectFacePoints(const KinectFacePoints& Points);
+	void FromKinectFacePoints(const NeoKinect::KinectFacePoints& Points);
 };
 
 /**
@@ -84,7 +93,7 @@ struct FFacePoints3D
 	UPROPERTY(BlueprintReadOnly, Category = "NeoKinect|Face")
 	FVector RightMouthCorner;
 
-	void FromKinectFacePoints(const KinectFacePoints& ColorPoints);
+	void FromKinectFacePoints(const NeoKinect::KinectFacePoints& ColorPoints);
 };
 
 /**
@@ -207,7 +216,7 @@ public:
 	* @return Is selected eye closed? Consider 'Maybe' more as a 'No'.
 	*/
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Face")
-	EDetectionResult GetEyeClosed(EKinectBodySide Eye);
+	EDetectionResult GetEyeClosed(EKinectBodySide Eye) const;
 
 	/**
 	* Get IsEngaged as execution pins.
@@ -270,9 +279,9 @@ public:
 	* @return True if this face belongs to the passed body.
 	*/
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Face")
-	bool IsFromBody(const UNeoKinectBody* Body);
+	bool IsFromBody(const UNeoKinectBody* Body) const;
 
-	void UpdateFromKinectFace(const KinectFace& kFace);
+	void UpdateFromKinectFace(const NeoKinect::KinectFace& kFace);
 
 	void Reset();
 };

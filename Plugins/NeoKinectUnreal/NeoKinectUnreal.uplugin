@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "1.0",
+	"VersionName": "1.1",
 	"FriendlyName": "NeoKinect",
 	"Description": "Allow Blueprints to use the Kinect v2 sensor capabilities.",
 	"Category": "Input Devices",
@@ -10,7 +10,7 @@
 	"DocsURL": "http://files.rvillani.com/neokinect/NeoKinect-QuickStart.pdf",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/130cfe979a6e4159b634d4b1d23e60da",
 	"SupportURL": "mailto:contact@rvillani.com",
-	"EngineVersion": "4.27.0",
+	"EngineVersion": "5.0.0",
 	"CanContainContent": false,
 	"Installed": true,
 	"Modules": [
@@ -18,7 +18,7 @@
 			"Name": "NeoKinectUnreal",
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
-			"WhitelistPlatforms": [
+			"PlatformAllowList": [
 				"Win64"
 			]
 		}

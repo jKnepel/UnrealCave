@@ -1,4 +1,4 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 using System.IO;
 using UnrealBuildTool;
@@ -32,10 +32,6 @@ public class NeoKinectUnreal : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-                "Engine",
-                "RHI",
-                "RenderCore",
-                "D3D11RHI"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -43,7 +39,10 @@ public class NeoKinectUnreal : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				// ... add private dependencies that you statically link with here ...	
+				"Engine",
+				"RenderCore",
+				"RHI",
+				// ... add private dependencies that you statically link with here ...
 			}
 			);
 		

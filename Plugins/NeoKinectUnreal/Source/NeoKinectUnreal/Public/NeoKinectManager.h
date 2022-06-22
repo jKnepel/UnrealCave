@@ -1,39 +1,45 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #pragma once
 
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <NeoKinect.h>
+#include "Windows/HideWindowsPlatformTypes.h"
+
+#include "NeoKinectEnums.h"
 #include "PixelFormat.h"
-#include "NeoKinectFace.h"
-#include "KinectThread.h"
+#include "Containers/Ticker.h"
 
 #include "NeoKinectManager.generated.h"
 
-using namespace NeoKinect;
+class FKinectThread;
+class UNeoKinectBody;
+class UNeoKinectFace;
+class UTextureRenderTarget2D;
 
 DECLARE_LOG_CATEGORY_CLASS(NeoKinectLog, Log, All);
 
 /** Structure to manage Kinect frame types lifetime and updating */
 struct FFrameTextureData
 {
-	UTexture *Texture;
-	uint32 Width;
-	uint32 Height;
-	uint32 PixelSize;
-	uint32 BufferSize;
-	EPixelFormat UPixelFormat;
-	KinectPixelFormat KPixelFormat;
-	EKinectFrame UFrameType;
-	KinectFrameType KFrameType;
-	KinectCoordinateSpace TargetSpace;
-	bool bIsSRGB;
-	bool bRemapped;
+	UTextureRenderTarget2D *Texture = nullptr;
+	uint32 Width = 0;
+	uint32 Height = 0;
+	uint32 PixelSize = 0;
+	uint32 BufferSize = 0;
+	EPixelFormat UPixelFormat = EPixelFormat::PF_Unknown;
+	NeoKinect::KinectPixelFormat KPixelFormat = NeoKinect::KinectPixelFormat::None;
+	EKinectFrame UFrameType = EKinectFrame::Count;
+	NeoKinect::KinectFrameType KFrameType = NeoKinect::KinectFrameType::Count;
+	NeoKinect::KinectCoordinateSpace TargetSpace = NeoKinect::KinectCoordinateSpace::Count;
+	bool bIsSRGB = false;
+	bool bRemapped = false;
 
-	FFrameTextureData();
 	~FFrameTextureData();
 	
 	inline bool IsTextureValid() const;
 	void Release();
-	FrameDescription GetFrameDescription(KinectSensor *Kinect) const;
+	NeoKinect::FrameDescription GetFrameDescription(const NeoKinect::KinectSensor *Kinect) const;
 };
 
 /**
@@ -64,7 +70,7 @@ public:
 	static TArray<UNeoKinectFace*> Faces;
 	/** Stores all the possible frame types Kinect or the program can create. 
 	* The array is created only once and lasts until the end of the program. */
-	static FFrameTextureData FramesData[(int32)EKinectFrame::Count];
+	static FFrameTextureData FramesData[static_cast<int32>(EKinectFrame::Count)];
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBodyTrackDelegate, UNeoKinectBody*, Body);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFaceTrackDelegate, UNeoKinectFace*, Face);
@@ -74,7 +80,7 @@ public:
 	UNeoKinectManager();
 	/** Destructor: unbind the static dispatcher events and makes sure to
 	* un-initialize the Kinect sensor before the program exits. */
-	~UNeoKinectManager();
+	virtual ~UNeoKinectManager() override;
 
 	/*-------------------------------------------------------------------------
 		EVENTS
@@ -156,7 +162,7 @@ public:
 	* 
 	* @return The Kinect sensor or NULL if not initialized.
 	*/
-	static KinectSensor* GetSensor();
+	static NeoKinect::KinectSensor* GetSensor();
 
 	/**
 	* Gets sensor tilt in degrees. It represents the pitch of the sensor in Unreal
@@ -236,7 +242,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Remapping", Meta = (Keywords = "convert coordinate space remap"))
 	static FVector CameraLocationToColorWithDepth(FVector CameraLocation);
 	/** Native NeoKinect implementation of the above */
-	static Vector3 CameraLocationToColorWithDepth(Vector3 CameraLocation);
+	static NeoKinect::Vector3 CameraLocationToColorWithDepth(NeoKinect::Vector3 CameraLocation);
 
 	/**
 	* Remaps a 3D camera location to a 2D point in the Color frame.
@@ -269,7 +275,7 @@ public:
 	* @param ColorLocation A point in the Color frame to be remapped (in pixels)
 	* @return The 3D version of the Color point (in Unreal units)
 	*/
-	static Vector3 ColorWithDepthFromColorOnly(const Vector2& ColorLocation);
+	static NeoKinect::Vector3 ColorWithDepthFromColorOnly(const NeoKinect::Vector2& ColorLocation);
 
 	/**
 	* Remaps a point location from the Depth frame to the Color frame.
@@ -329,7 +335,7 @@ public:
 	* @return The Frame texture. Null if Enable = false.
 	*/
 	UFUNCTION(BlueprintCallable, Category = "NeoKinect|Frames", Meta = (Keywords = "texture sensor camera enable disable toggle", DisplayName = "Set Use Kinect Frame"))
-	static UTexture* SetUseFrame(EKinectFrame FrameType, bool bEnable);
+	static UTextureRenderTarget2D* SetUseFrame(EKinectFrame FrameType, bool bEnable);
 
 	/**
 	* Returns if a Kinect frame type is enabled. If it is, it means you can get
@@ -349,7 +355,7 @@ public:
 	*		  not been enabled.
 	*/
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Frames", Meta = (Keywords = "texture sensor camera", DisplayName = "Get Kinect Frame"))
-	static UTexture* GetFrame(EKinectFrame FrameType);
+	static UTextureRenderTarget2D* GetFrame(EKinectFrame FrameType);
 
 	/**
 	* Gets the depth value from a specific pixel on the Depth frame.
@@ -500,7 +506,7 @@ public:
 	/**
 	* Cast a Face to its index number.
 	*
-	* @param face The face instance.
+	* @param Face The face instance.
 	* @return Face index.
 	*/
 	UFUNCTION(BlueprintPure, Category = "NeoKinect|Face", Meta = (CompactNodeTitle = "->", Keywords = "convert cast"))
@@ -551,17 +557,12 @@ public:
 
 
 private:
-	/** Enables UNeoKinectBody and UNeoKinectFace classes to access our private
-	* member bUsingJointsColorSpaceTransforms */
-	friend void UNeoKinectBody::UpdateFromKinectBody(const KinectBody&, const KinectSensor&);
-	friend void UNeoKinectFace::UpdateFromKinectFace(const KinectFace& kFace);
-
 	/** NeoKinect API sensor */
-	static KinectSensor *Kinect;
+	static NeoKinect::KinectSensor* Kinect;
 	/** Does the sensor polling */
-	static FKinectThread *KinectThread;
+	static FKinectThread* KinectThread;
 	/** FTicker handle so we can stop ticking after uninitializing the sensor */
-	static FDelegateHandle TickerHandle;
+	static FTSTicker::FDelegateHandle TickerHandle;
 
 	//TODO: figure out a way to know when a level is unloaded
 	//static bool bAutoShutdown;
@@ -582,7 +583,7 @@ private:
 	static bool IsUsingBodyIndex();
 	static bool IsUsingColor();
 	/** Creates a 2D dynamic texture for frames usage */
-	static UTexture* CreateTexture(int32 Width, int32 Height, EPixelFormat PixelFormat, bool sRGB);
+	static UTextureRenderTarget2D* CreateTexture(int32 Width, int32 Height, EPixelFormat PixelFormat, bool sRGB);
 	/** Updates all currently enabled frames. Executed in the Render thread */
 	static void UpdateFrames();
 	/** Delete frames textures memory */
@@ -591,14 +592,14 @@ private:
 	/** Enable/disable bodies frame reading */
 	static void SetUseBodyFrame(bool bUse = true);
 	/** Converts bodies joints transforms to Unreal coordinate space */
-	static void ProcessBodies(const KinectBody*);
+	static void ProcessBodies(const NeoKinect::KinectBody* KBodies);
 	/** Zero all bodies values. Used when uninitializing the sensor */
 	static void ResetBodies();
 
 	/** Enable/disable faces frame reading */
 	static void SetUseFaceFrame(bool bUse = true);
 	/** Converts faces points transforms to Unreal coordinate space */
-	static void ProcessFaces(const KinectFace*);
+	static void ProcessFaces(const NeoKinect::KinectFace* KFaces);
 	/** Zero all faces values. Used when uninitializing the sensor */
 	static void ResetFaces();
 	

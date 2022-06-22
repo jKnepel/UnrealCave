@@ -1,19 +1,32 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.27",
+	"EngineAssociation": "5.0",
 	"Category": "",
 	"Description": "",
 	"Modules": [
 		{
 			"Name": "UnrealCave",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine"
-			]
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
+			"Name": "Bridge",
+			"Enabled": true,
+			"SupportedTargetPlatforms": [
+				"Win64",
+				"Mac",
+				"Linux"
+			]
+		},
 		{
 			"Name": "nDisplay",
 			"Enabled": true,
@@ -23,30 +36,17 @@
 			]
 		},
 		{
-			"Name": "OculusVR",
-			"Enabled": false,
-			"SupportedTargetPlatforms": [
-				"Win64"
-			]
+			"Name": "NeoKinectUnreal",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/130cfe979a6e4159b634d4b1d23e60da"
 		},
 		{
-			"Name": "SteamVR",
-			"Enabled": false,
-			"SupportedTargetPlatforms": [
-				"Win64"
-			]
+			"Name": "JoyConDriver",
+			"Enabled": true
 		},
 		{
 			"Name": "Switchboard",
 			"Enabled": true
-		},
-		{
-			"Name": "NeoKinectUnreal",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/130cfe979a6e4159b634d4b1d23e60da"
 		}
-	],
-	"TargetPlatforms": [
-		"WindowsNoEditor"
 	]
 }

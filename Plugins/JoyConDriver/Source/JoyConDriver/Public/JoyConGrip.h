@@ -27,10 +27,10 @@ public:
 	 * Device Info
 	 */
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		int GripIndex;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(Category="JoyConDriver", EditAnywhere, BlueprintReadOnly)
 		TEnumAsByte<EGripMode> Mode;
 	
 		TArray<FJoyConController*> Controllers;

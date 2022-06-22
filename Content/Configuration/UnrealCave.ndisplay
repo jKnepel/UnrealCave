@@ -2,7 +2,7 @@
 	"nDisplay":
 	{
 		"description": "nDisplay configuration",
-		"version": "4.27",
+		"version": "5.0",
 		"assetPath": "/Game/Configuration/UnrealCave.UnrealCave",
 		"misc":
 		{

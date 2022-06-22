@@ -1,7 +1,7 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #include "NeoKinectFace.h"
-
+#include "NeoKinectBody.h"
 #include "NeoKinectManager.h"
 
 void FIntBoundingBox::FromRectI(const RectI& Rect)
@@ -12,7 +12,7 @@ void FIntBoundingBox::FromRectI(const RectI& Rect)
 	Bottom = Rect.Bottom;
 }
 
-void FFacePoints2D::FromKinectFacePoints(const KinectFacePoints& Points)
+void FFacePoints2D::FromKinectFacePoints(const NeoKinect::KinectFacePoints& Points)
 {
 	LeftEye.X = Points.leftEye.x;
 	LeftEye.Y = Points.leftEye.y;
@@ -30,11 +30,9 @@ void FFacePoints2D::FromKinectFacePoints(const KinectFacePoints& Points)
 	RightMouthCorner.Y = Points.rightMouthCorner.y;
 }
 
-void FFacePoints3D::FromKinectFacePoints(const KinectFacePoints& ColorPoints)
+void FFacePoints3D::FromKinectFacePoints(const NeoKinect::KinectFacePoints& ColorPoints)
 {
-	Vector3 Location;
-
-	Location = UNeoKinectManager::ColorWithDepthFromColorOnly(ColorPoints.leftEye) * 100.f;
+	NeoKinect::Vector3 Location = UNeoKinectManager::ColorWithDepthFromColorOnly(ColorPoints.leftEye) * 100.f;
 	LeftEye.Set(-Location.z, Location.x, Location.y);
 
 	Location = UNeoKinectManager::ColorWithDepthFromColorOnly(ColorPoints.rightEye) * 100.f;
@@ -71,12 +69,12 @@ void UNeoKinectFace::GetEyeClosedAsExec(EKinectBodySide Eye, EDetectionResult& R
 	}
 }
 
-EDetectionResult UNeoKinectFace::GetEyeClosed(EKinectBodySide Eye)
+EDetectionResult UNeoKinectFace::GetEyeClosed(EKinectBodySide Eye) const
 {
 	if (Eye == EKinectBodySide::Left)
 		return IsLeftEyeClosed;
-	else
-		return IsRightEyeClosed;
+
+	return IsRightEyeClosed;
 }
 
 void UNeoKinectFace::GetIsEngagedAsExec(EDetectionResult& Result)
@@ -109,14 +107,14 @@ void UNeoKinectFace::GetIsWearingGlassesAsExec(EDetectionResult& Result)
 	Result = IsWearingGlasses;
 }
 
-bool UNeoKinectFace::IsFromBody(const UNeoKinectBody* Body)
+bool UNeoKinectFace::IsFromBody(const UNeoKinectBody* Body) const
 {
 	return Body->TrackingId == TrackingId;
 }
 
-void UNeoKinectFace::UpdateFromKinectFace(const KinectFace& kFace)
+void UNeoKinectFace::UpdateFromKinectFace(const NeoKinect::KinectFace& kFace)
 {
-	bool bWasTracked = bIsTracked;
+	const bool bWasTracked = bIsTracked;
 
 	bIsTracked = kFace.bIsTracked;
 	TrackingId = kFace.trackingId;
@@ -134,7 +132,7 @@ void UNeoKinectFace::UpdateFromKinectFace(const KinectFace& kFace)
 		-kFace.pivot.X * 100.f,
 		kFace.pivot.Y * 100.f);
 
-	FQuat Quat = FQuat(
+	const FQuat Quat = FQuat(
 		-kFace.rotation.z,
 		kFace.rotation.x,
 		-kFace.rotation.y,
@@ -145,10 +143,11 @@ void UNeoKinectFace::UpdateFromKinectFace(const KinectFace& kFace)
 		-Quat.GetAxisY()).Rotator();
 
 	/* Color space face location */
-	if (UNeoKinectManager::bUsingJointsColorSpaceTransforms)
+	if (UNeoKinectManager::IsUsingJointsColorSpaceTransforms())
 	{
+		using namespace NeoKinect;
 		// Convert camera space location to color space with depth
-		Vector3 ColorDepthLocation = UNeoKinectManager::CameraLocationToColorWithDepth(Vector3(kFace.pivot));
+		const Vector3 ColorDepthLocation = UNeoKinectManager::CameraLocationToColorWithDepth(Vector3(kFace.pivot));
 		if (ColorDepthLocation.IsZero())
 		{
 			ColorLocation = Location;

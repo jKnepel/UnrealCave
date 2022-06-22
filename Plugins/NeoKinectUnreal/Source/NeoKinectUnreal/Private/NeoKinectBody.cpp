@@ -1,6 +1,10 @@
-﻿// Copyright 2016-2018 Rodrigo Villani Pereira
+﻿// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #include "NeoKinectBody.h"
+
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <NeoKinect.h>
+#include "Windows/HideWindowsPlatformTypes.h"
 
 #include "NeoKinectManager.h"
 
@@ -15,12 +19,13 @@ UNeoKinectBody::UNeoKinectBody() :
 	LeanTrackingState(EKinectTrackingState::NotTracked),
 	Lean(FVector2D(0.f, 0.f))
 {
+	using namespace NeoKinect;
+
 	Joints.SetNum(KinectJointCount);
 
-	int32 n = KinectJointCount;
-	for (int32 i = 0; i < n; ++i)
+	for (int32 JointIdx = 0; JointIdx < KinectJointCount; ++JointIdx)
 	{
-		Joints[i].Type = (EKinectJointType)i;
+		Joints[JointIdx].Type = static_cast<EKinectJointType>(JointIdx);
 	}
 }
 
@@ -41,7 +46,7 @@ void UNeoKinectBody::GetHandStateAsExec(EKinectBodySide Hand, EKinectHandState& 
 	}
 }
 
-EKinectHandState UNeoKinectBody::GetHandState(EKinectBodySide Hand)
+EKinectHandState UNeoKinectBody::GetHandState(EKinectBodySide Hand) const
 {
 	if (Hand == EKinectBodySide::Left)
 		return HandLeftState;
@@ -61,7 +66,7 @@ void UNeoKinectBody::GetHandConfidenceAsExec(EKinectBodySide Hand, EKinectTracki
 	}
 }
 
-EKinectTrackingState UNeoKinectBody::GetHandConfidence(EKinectBodySide Hand)
+EKinectTrackingState UNeoKinectBody::GetHandConfidence(EKinectBodySide Hand) const
 {
 	if (Hand == EKinectBodySide::Left)
 		return HandLeftTrackingState;
@@ -81,94 +86,94 @@ TArray<FKinectJoint> UNeoKinectBody::GetJoints()
 
 FVector UNeoKinectBody::GetJointLocation(EKinectJointType Joint)
 {
-	return Joints[(int32)Joint].Location;
+	return Joints[static_cast<int32>(Joint)].Location;
 }
 
 FRotator UNeoKinectBody::GetJointOrientation(EKinectJointType Joint)
 {
-	return Joints[(int32)Joint].Orientation;
+	return Joints[static_cast<int32>(Joint)].Orientation;
 }
 
 FVector UNeoKinectBody::GetJointLocationColor(EKinectJointType Joint)
 {
-	return Joints[(int32)Joint].ColorLocation;
+	return Joints[static_cast<int32>(Joint)].ColorLocation;
 }
 
 FRotator UNeoKinectBody::GetJointOrientationColor(EKinectJointType Joint)
 {
-	return Joints[(int32)Joint].ColorOrientation;
+	return Joints[static_cast<int32>(Joint)].ColorOrientation;
 }
 
 void UNeoKinectBody::GetJointConfidenceAsExec(EKinectJointType Joint, EKinectTrackingState& States)
 {
-	States = Joints[(int32)Joint].Confidence;
+	States = Joints[static_cast<int32>(Joint)].Confidence;
 }
 
 EKinectTrackingState UNeoKinectBody::GetJointConfidence(EKinectJointType Joint)
 {
-	return Joints[(int32)Joint].Confidence;
+	return Joints[static_cast<int32>(Joint)].Confidence;
 }
 
 float UNeoKinectBody::GetJointsDistance(EKinectJointType JointA, EKinectJointType JointB)
 {
-	return FVector::Dist(Joints[(int32)JointB].Location, Joints[(int32)JointA].Location);
+	return FVector::Dist(Joints[static_cast<int32>(JointB)].Location, Joints[static_cast<int32>(JointA)].Location);
 }
 
 float UNeoKinectBody::GetBoneLength(EKinectJointType Joint)
 {
-	FVector p1 = Joints[(int32)Joint].Location;
+	const FVector p1 = Joints[static_cast<int32>(Joint)].Location;
 	switch (Joint)
 	{
 	case EKinectJointType::SpineBase:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineMid].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineMid)].Location);
 	case EKinectJointType::SpineMid:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineBase].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineBase)].Location);
 	case EKinectJointType::Neck:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineShoulder].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineShoulder)].Location);
 	case EKinectJointType::Head:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::Neck].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::Neck)].Location);
 	case EKinectJointType::ShoulderLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineShoulder].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineShoulder)].Location);
 	case EKinectJointType::ElbowLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::ShoulderLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::ShoulderLeft)].Location);
 	case EKinectJointType::WristLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::ElbowLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::ElbowLeft)].Location);
 	case EKinectJointType::HandLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::WristLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::WristLeft)].Location);
 	case EKinectJointType::ShoulderRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineShoulder].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineShoulder)].Location);
 	case EKinectJointType::ElbowRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::ShoulderRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::ShoulderRight)].Location);
 	case EKinectJointType::WristRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::ElbowRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::ElbowRight)].Location);
 	case EKinectJointType::HandRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::WristRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::WristRight)].Location);
 	case EKinectJointType::HipLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineBase].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineBase)].Location);
 	case EKinectJointType::KneeLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::HipLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::HipLeft)].Location);
 	case EKinectJointType::AnkleLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::KneeLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::KneeLeft)].Location);
 	case EKinectJointType::FootLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::AnkleLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::AnkleLeft)].Location);
 	case EKinectJointType::HipRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineBase].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineBase)].Location);
 	case EKinectJointType::KneeRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::HipRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::HipRight)].Location);
 	case EKinectJointType::AnkleRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::KneeRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::KneeRight)].Location);
 	case EKinectJointType::FootRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::AnkleRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::AnkleRight)].Location);
 	case EKinectJointType::SpineShoulder:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::SpineMid].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::SpineMid)].Location);
 	case EKinectJointType::HandTipLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::WristLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::WristLeft)].Location);
 	case EKinectJointType::ThumbLeft:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::HandLeft].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::HandLeft)].Location);
 	case EKinectJointType::HandTipRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::WristRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::WristRight)].Location);
 	case EKinectJointType::ThumbRight:
-		return FVector::Dist(p1, Joints[(int32)EKinectJointType::HandRight].Location);
+		return FVector::Dist(p1, Joints[static_cast<int32>(EKinectJointType::HandRight)].Location);
 	default:
 		return 0.f;
 	}
@@ -179,11 +184,13 @@ float UNeoKinectBody::JointDotVector(EKinectJointType Joint, FVector Vector)
 	Vector.Normalize();
 	return FVector::DotProduct(
 		Vector,
-		FRotationMatrix(Joints[(int32)Joint].Orientation).GetScaledAxis(EAxis::Z));
+		FRotationMatrix(Joints[static_cast<int32>(Joint)].Orientation).GetScaledAxis(EAxis::Z));
 }
 
-void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectSensor& Sensor)
+void UNeoKinectBody::UpdateFromKinectBody(const NeoKinect::KinectBody& kBody, const NeoKinect::KinectSensor& Sensor)
 {
+	using namespace NeoKinect;
+
 	// For throwing BeginTrack/Lost events after update
 	bool bWasTracked = bIsTracked;
 
@@ -196,13 +203,13 @@ void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectS
 	bIsRestricted = kBody.isRestricted;
 	TrackingId = kBody.trackingId;
 
-	HandLeftState = (EKinectHandState)kBody.handLeftState;
-	HandLeftTrackingState = (EKinectTrackingState)kBody.handLeftTrackingState;
+	HandLeftState = static_cast<EKinectHandState>(kBody.handLeftState);
+	HandLeftTrackingState = static_cast<EKinectTrackingState>(kBody.handLeftTrackingState);
 
-	HandRightState = (EKinectHandState)kBody.handRightState;
-	HandRightTrackingState = (EKinectTrackingState)kBody.handRightTrackingState;
+	HandRightState = static_cast<EKinectHandState>(kBody.handRightState);
+	HandRightTrackingState = static_cast<EKinectTrackingState>(kBody.handRightTrackingState);
 
-	LeanTrackingState = (EKinectTrackingState)kBody.leanTrackingState;
+	LeanTrackingState = static_cast<EKinectTrackingState>(kBody.leanTrackingState);
 	Lean.Set(kBody.lean.x, kBody.lean.y);
 
 	// update joints only if being tracked
@@ -214,7 +221,7 @@ void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectS
 			FKinectJoint& uJoint = Joints[j];
 			KinectJoint joint = kBody.joints[j];
 
-			uJoint.Confidence = (EKinectTrackingState)joint.trackingState;
+			uJoint.Confidence = static_cast<EKinectTrackingState>(joint.trackingState);
 			uJoint.Location.Set(
 				joint.position.Z * 100.f,
 				-joint.position.X * 100.f,
@@ -287,7 +294,7 @@ void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectS
 
 		} // camera space joints transforms
 
-		if (UNeoKinectManager::bUsingJointsColorSpaceTransforms)
+		if (UNeoKinectManager::IsUsingJointsColorSpaceTransforms())
 		{
 			// color space with depth joints transforms
 			for (int32 j = 0; j < KinectJointCount; ++j)
@@ -361,7 +368,7 @@ void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectS
 			// interpolate between a rot for fully stretched arm and one for bent
 			Dir1 = FVector::CrossProduct(J_DIR(ElbowLeft, WristLeft), J_DIR(ElbowLeft, ShoulderLeft)); // bent
 			Rot1 = FRotationMatrix::MakeFromXZ(XDir, Dir1).ToQuat(); // bent
-			Dir2 = FRotationMatrix(JOINT(ShoulderLeft).ColorOrientation).GetScaledAxis(EAxis::Y); // streched
+			Dir2 = FRotationMatrix(JOINT(ShoulderLeft).ColorOrientation).GetScaledAxis(EAxis::Y); // stretched
 			Rot2 = FRotationMatrix::MakeFromXY(XDir, Dir2).ToQuat(); // stretched
 			Dir1 = J_DIR(ShoulderLeft, ElbowLeft); Dir2 = J_DIR(ElbowLeft, WristLeft);
 			Dir1.Normalize(); Dir2.Normalize();
@@ -400,7 +407,7 @@ void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectS
 			// interpolate between a rot for fully stretched arm and one for bent
 			Dir1 = FVector::CrossProduct(J_DIR(ElbowRight, WristRight), J_DIR(ElbowRight, ShoulderRight)); // bent
 			Rot1 = FRotationMatrix::MakeFromXZ(XDir, Dir1).ToQuat(); // bent
-			Dir2 = FRotationMatrix(JOINT(ShoulderRight).ColorOrientation).GetScaledAxis(EAxis::Y); // streched
+			Dir2 = FRotationMatrix(JOINT(ShoulderRight).ColorOrientation).GetScaledAxis(EAxis::Y); // stretched
 			Rot2 = FRotationMatrix::MakeFromXY(XDir, Dir2).ToQuat(); // stretched
 			Dir1 = J_DIR(ShoulderRight, ElbowRight); Dir2 = J_DIR(ElbowRight, WristRight);
 			Dir1.Normalize(); Dir2.Normalize();
@@ -499,6 +506,8 @@ void UNeoKinectBody::UpdateFromKinectBody(const KinectBody& kBody, const KinectS
 
 void UNeoKinectBody::Reset()
 {
+	using namespace NeoKinect;
+
 	ClippedEdges.Left =
 		ClippedEdges.Right =
 		ClippedEdges.Top =
@@ -517,11 +526,13 @@ void UNeoKinectBody::Reset()
 	LeanTrackingState = EKinectTrackingState::NotTracked;
 	Lean.Set(0.f, 0.f);
 
-	if (Joints.Num() != KinectJointCount) return;
+	if (Joints.Num() != KinectJointCount)
+		return;
 
 	for (int32 j = 0; j < KinectJointCount; ++j)
 	{
-		if (!Joints.IsValidIndex(j)) continue;
+		if (!Joints.IsValidIndex(j))
+			continue;
 		FKinectJoint& Joint = Joints[j];
 
 		Joint.Confidence = EKinectTrackingState::NotTracked;

@@ -1,16 +1,12 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #include "KinectThread.h"
+
+#include "HAL/RunnableThread.h"
 
 /*-----------------------------------------------------------------------------
 	ThreadFrameBuffer
 -----------------------------------------------------------------------------*/
-
-FThreadFrameBuffer::FThreadFrameBuffer() :
-	bRemapped(false),
-	bIsNew(false),
-	Buffer(nullptr)
-{}
 
 FThreadFrameBuffer::~FThreadFrameBuffer()
 {
@@ -27,6 +23,9 @@ void FThreadFrameBuffer::Configure(KinectFrameType Frame, KinectPixelFormat Form
 
 bool FThreadFrameBuffer::AllocateBuffers(uint32 Size)
 {
+	if (IsAllocated())
+		return true;
+
 	Buffer = new uint8[Size];
 	BackBuffer = new uint8[Size];
 	return Buffer && BackBuffer;
@@ -36,18 +35,24 @@ void FThreadFrameBuffer::DeallocateBuffers()
 {
 	bIsNew = false;
 
-	Lock();
-	if (Buffer) delete[] Buffer;
-	Buffer = nullptr;
-	Unlock();
+	if (Buffer)
+	{
+		Lock();
+		delete[] Buffer;
+		Buffer = nullptr;
+		Unlock();
+	}
 
-	LockWrite();
-	if (BackBuffer) delete[] BackBuffer;
-	BackBuffer = nullptr;
-	UnlockWrite();
+	if (BackBuffer)
+	{
+		LockWrite();
+		delete[] BackBuffer;
+		BackBuffer = nullptr;
+		UnlockWrite();
+	}
 }
 
-bool FThreadFrameBuffer::IsAllocated()
+bool FThreadFrameBuffer::IsAllocated() const
 {
 	return Buffer && BackBuffer;
 }
@@ -69,7 +74,7 @@ const uint8* FThreadFrameBuffer::GetReadBuffer(bool bConsume /*= true*/)
 	}
 }
 
-uint8* FThreadFrameBuffer::GetWriteBuffer()
+uint8* FThreadFrameBuffer::GetWriteBuffer() const
 {
 	return BackBuffer;
 }

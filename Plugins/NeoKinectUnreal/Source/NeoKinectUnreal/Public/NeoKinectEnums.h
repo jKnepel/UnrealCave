@@ -1,10 +1,6 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #pragma once
-
-#include "Windows/AllowWindowsPlatformTypes.h"
-#include "NeoKinect.h"
-#include "Windows/HideWindowsPlatformTypes.h"
 
 #include "NeoKinectEnums.generated.h"
 

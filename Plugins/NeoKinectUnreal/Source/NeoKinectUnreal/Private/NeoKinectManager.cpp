@@ -1,10 +1,14 @@
-// Copyright 2016-2018 Rodrigo Villani Pereira
+// Copyright 2016-2022 Rodrigo Villani Pereira
 
 #include "NeoKinectManager.h"
-#include "DynamicTexture2D.h"
-#include "Containers/Ticker.h"
+#include "KinectThread.h"
+#include "NeoKinectBody.h"
+#include "NeoKinectFace.h"
 
-#include <limits>
+#include "RenderingThread.h"
+#include "Containers/Ticker.h"
+#include "Engine/TextureDefines.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 #define CUR_CLASS_FUNC (FString(__FUNCTION__))
 
@@ -13,11 +17,6 @@
 */
 #pragma region Structs
 
-FFrameTextureData::FFrameTextureData() :
-	Texture(NULL)
-	, bIsSRGB(false)
-{}
-
 FFrameTextureData::~FFrameTextureData()
 {
 	Release();
@@ -25,21 +24,31 @@ FFrameTextureData::~FFrameTextureData()
 
 bool FFrameTextureData::IsTextureValid() const
 {
-	FThreadFrameBuffer &ThreadBuffer = FKinectThread::FrameBuffers[static_cast<uint64>(UFrameType)];
-	return ThreadBuffer.IsAllocated() && Texture && Texture->IsValidLowLevelFast();
+	if (!IsValid(Texture) || UFrameType == EKinectFrame::Count)
+		return false;
+
+	const FThreadFrameBuffer &ThreadBuffer = FKinectThread::FrameBuffers[static_cast<uint64>(UFrameType)];
+	return ThreadBuffer.IsAllocated();
 }
 
 void FFrameTextureData::Release()
 {
+	if (UFrameType == EKinectFrame::Count)
+		return;
+
 	FThreadFrameBuffer &ThreadBuffer = FKinectThread::FrameBuffers[static_cast<uint64>(UFrameType)];
 	ThreadBuffer.DeallocateBuffers();
 
-	if (Texture && Texture->IsValidLowLevelFast())
+	if (IsValid(Texture))
+	{
+		Texture->ReleaseResource();
+		Texture->RemoveFromRoot();
 		Texture->ConditionalBeginDestroy();
-	Texture = NULL;
+	}
+	Texture = nullptr;
 }
 
-FrameDescription FFrameTextureData::GetFrameDescription(KinectSensor *Kinect) const
+FrameDescription FFrameTextureData::GetFrameDescription(const KinectSensor *Kinect) const
 {
 	return Kinect->GetFrameDescription(KFrameType);
 }
@@ -51,8 +60,8 @@ FrameDescription FFrameTextureData::GetFrameDescription(KinectSensor *Kinect) co
 */
 #pragma region Statics
 
-KinectSensor* UNeoKinectManager::Kinect = NULL;
-FKinectThread* UNeoKinectManager::KinectThread = NULL;
+KinectSensor* UNeoKinectManager::Kinect = nullptr;
+FKinectThread* UNeoKinectManager::KinectThread = nullptr;
 //bool UNeoKinectManager::bAutoShutdown = false;
 
 bool UNeoKinectManager::bUsingBodyFrame = false;
@@ -61,10 +70,10 @@ bool UNeoKinectManager::bUsingFaceFrame = false;
 
 TArray<UNeoKinectBody*> UNeoKinectManager::Bodies;
 TArray<UNeoKinectFace*> UNeoKinectManager::Faces;
-FFrameTextureData UNeoKinectManager::FramesData[(int32)EKinectFrame::Count];
+FFrameTextureData UNeoKinectManager::FramesData[static_cast<int32>(EKinectFrame::Count)];
 
-UNeoKinectManager* UNeoKinectManager::EventsDispatcher = NULL;
-FDelegateHandle UNeoKinectManager::TickerHandle;
+UNeoKinectManager* UNeoKinectManager::EventsDispatcher = nullptr;
+FTSTicker::FDelegateHandle UNeoKinectManager::TickerHandle;
 
 
 #pragma endregion Statics
@@ -97,7 +106,7 @@ UNeoKinectManager::~UNeoKinectManager()
 
 	UninitSensor();
 	this->RemoveFromRoot();
-	EventsDispatcher = NULL;
+	EventsDispatcher = nullptr;
 }
 
 void UNeoKinectManager::initStatics()
@@ -108,7 +117,7 @@ void UNeoKinectManager::initStatics()
 		|| FramesData[2].UFrameType != EKinectFrame::NormalizedDepth))
 		return; // if none of the above were true
 
-				// reset any allocated memory
+	// reset any allocated memory
 	Bodies.Empty(KinectBodyCount);
 	Faces.Empty(KinectBodyCount);
 	for (FFrameTextureData& FrameData : FramesData)
@@ -116,10 +125,8 @@ void UNeoKinectManager::initStatics()
 		FrameData.Release();
 	}
 
-	Bodies.SetNum(KinectBodyCount);
-	Bodies.Shrink();
-	Faces.SetNum(KinectBodyCount);
-	Faces.Shrink();
+	Bodies.SetNum(KinectBodyCount, true);
+	Faces.SetNum(KinectBodyCount, true);
 
 	for (int32 i = 0; i < KinectBodyCount; ++i)
 	{
@@ -131,7 +138,7 @@ void UNeoKinectManager::initStatics()
 		Faces[i]->Index = i;
 	}
 
-	FFrameTextureData* FrameData = &FramesData[(int32)EKinectFrame::Color];
+	FFrameTextureData* FrameData = &FramesData[static_cast<int32>(EKinectFrame::Color)];
 	FrameData->UPixelFormat = EPixelFormat::PF_B8G8R8A8;
 	FrameData->KPixelFormat = KinectPixelFormat::B8G8R8A8;
 	FrameData->Width = KinectColorWidth;
@@ -141,7 +148,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->bRemapped = false;
 	FrameData->bIsSRGB = true;
 
-	FrameData = &FramesData[(int32)EKinectFrame::Depth];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::Depth)];
 	FrameData->UPixelFormat = EPixelFormat::PF_G16;
 	FrameData->KPixelFormat = KinectPixelFormat::G16;
 	FrameData->Width = KinectDepthWidth;
@@ -150,7 +157,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->KFrameType = KinectFrameType::Depth;
 	FrameData->bRemapped = false;
 
-	FrameData = &FramesData[(int32)EKinectFrame::NormalizedDepth];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::NormalizedDepth)];
 	FrameData->UPixelFormat = EPixelFormat::PF_B8G8R8A8;
 	FrameData->KPixelFormat = KinectPixelFormat::B8G8R8A8;
 	FrameData->Width = KinectDepthWidth;
@@ -159,7 +166,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->KFrameType = KinectFrameType::Depth;
 	FrameData->bRemapped = false;
 
-	FrameData = &FramesData[(int32)EKinectFrame::BodyIndex];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::BodyIndex)];
 	FrameData->UPixelFormat = EPixelFormat::PF_G8;
 	FrameData->KPixelFormat = KinectPixelFormat::G8;
 	FrameData->Width = KinectDepthWidth;
@@ -168,7 +175,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->KFrameType = KinectFrameType::BodyIndex;
 	FrameData->bRemapped = false;
 
-	FrameData = &FramesData[(int32)EKinectFrame::BodyIndexColor];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::BodyIndexColor)];
 	FrameData->UPixelFormat = EPixelFormat::PF_B8G8R8A8;
 	FrameData->KPixelFormat = KinectPixelFormat::B8G8R8A8;
 	FrameData->Width = KinectDepthWidth;
@@ -178,7 +185,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->bRemapped = false;
 	FrameData->bIsSRGB = true;
 
-	FrameData = &FramesData[(int32)EKinectFrame::Color_DepthSpace];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::Color_DepthSpace)];
 	FrameData->UPixelFormat = EPixelFormat::PF_B8G8R8A8;
 	FrameData->KPixelFormat = KinectPixelFormat::B8G8R8A8;
 	FrameData->Width = KinectDepthWidth;
@@ -189,7 +196,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->TargetSpace = KinectCoordinateSpace::Depth;
 	FrameData->bIsSRGB = true;
 
-	FrameData = &FramesData[(int32)EKinectFrame::Depth_ColorSpace];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::Depth_ColorSpace)];
 	FrameData->UPixelFormat = EPixelFormat::PF_G16;
 	FrameData->KPixelFormat = KinectPixelFormat::G16;
 	FrameData->Width = KinectColorWidth;
@@ -199,7 +206,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->bRemapped = true;
 	FrameData->TargetSpace = KinectCoordinateSpace::Color;
 
-	FrameData = &FramesData[(int32)EKinectFrame::BodyIndex_ColorSpace];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::BodyIndex_ColorSpace)];
 	FrameData->UPixelFormat = EPixelFormat::PF_G8;
 	FrameData->KPixelFormat = KinectPixelFormat::G8;
 	FrameData->Width = KinectColorWidth;
@@ -209,7 +216,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->bRemapped = true;
 	FrameData->TargetSpace = KinectCoordinateSpace::Color;
 
-	FrameData = &FramesData[(int32)EKinectFrame::Infrared];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::Infrared)];
 	FrameData->UPixelFormat = EPixelFormat::PF_G16;
 	FrameData->KPixelFormat = KinectPixelFormat::G16;
 	FrameData->Width = KinectDepthWidth;
@@ -218,7 +225,7 @@ void UNeoKinectManager::initStatics()
 	FrameData->KFrameType = KinectFrameType::Infrared;
 	FrameData->bRemapped = false;
 
-	FrameData = &FramesData[(int32)EKinectFrame::LongExposureInfrared];
+	FrameData = &FramesData[static_cast<int32>(EKinectFrame::LongExposureInfrared)];
 	FrameData->UPixelFormat = EPixelFormat::PF_G16;
 	FrameData->KPixelFormat = KinectPixelFormat::G16;
 	FrameData->Width = KinectDepthWidth;
@@ -227,15 +234,12 @@ void UNeoKinectManager::initStatics()
 	FrameData->KFrameType = KinectFrameType::LongExposureInfrared;
 	FrameData->bRemapped = false;
 
-	int32 n = static_cast<int32>(EKinectFrame::Count);
+	for (int32 i = 0; i < static_cast<int32>(EKinectFrame::Count); ++i)
 	{
-		for (int32 i = 0; i < n; ++i)
-		{
-			FFrameTextureData& fd = FramesData[i];
+		FFrameTextureData& fd = FramesData[i];
 
-			fd.UFrameType = static_cast<EKinectFrame>(i);
-			fd.BufferSize = fd.Width * fd.Height * fd.PixelSize;
-		}
+		fd.UFrameType = static_cast<EKinectFrame>(i);
+		fd.BufferSize = fd.Width * fd.Height * fd.PixelSize;
 	}
 }
 #pragma endregion Initialization_Uninitialization
@@ -268,7 +272,7 @@ void UNeoKinectManager::InitSensor()
 			initStatics();
 
 			// set bodies, faces and textures update timer
-			TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&OnTick), 0.016666666f);
+			TickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&OnTick), 0.016666666f);
 
 			// prepare the events handler
 			if (!EventsDispatcher)
@@ -280,14 +284,14 @@ void UNeoKinectManager::InitSensor()
 		else
 		{
 			UE_LOG(NeoKinectLog, Error, TEXT("Kinect sensor failed to initialize."));
-			Kinect = NULL;
+			Kinect = nullptr;
 		}
 	}
 }
 
 bool UNeoKinectManager::IsKinectAvailable()
 {
-	return Kinect != NULL && Kinect->IsSensorAvailable();
+	return Kinect != nullptr && Kinect->IsSensorAvailable();
 }
 
 void UNeoKinectManager::UninitSensor()
@@ -296,7 +300,7 @@ void UNeoKinectManager::UninitSensor()
 	if (KinectThread)
 	{
 		KinectThread->Shutdown();
-		KinectThread = NULL;
+		KinectThread = nullptr;
 	}
 
 	// release frame textures
@@ -310,7 +314,7 @@ void UNeoKinectManager::UninitSensor()
 	ResetFaces();
 
 	// get global timer manager (World independent)
-	FTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+	FTSTicker::GetCoreTicker().RemoveTicker(TickerHandle);
 
 	if (Kinect) // release sensor
 	{
@@ -320,7 +324,7 @@ void UNeoKinectManager::UninitSensor()
 		Kinect->UninitSensor();
 		UE_LOG(NeoKinectLog, Warning, TEXT("Kinect sensor uninitialized."));
 		delete Kinect;
-		Kinect = NULL;
+		Kinect = nullptr;
 	}
 }
 
@@ -360,7 +364,7 @@ FVector UNeoKinectManager::GetGroundPlane(float &Height)
 		return FVector(0.0f);
 	}
 
-	Vector4 FloorClipPlane = Kinect->GetFloorClipPlane();
+	const Vector4 FloorClipPlane = Kinect->GetFloorClipPlane();
 	Height = FloorClipPlane.w * 100.0f;
 	return FVector(
 		-FloorClipPlane.z,
@@ -458,14 +462,13 @@ Vector3 UNeoKinectManager::CameraLocationToColorWithDepth(Vector3 CameraLocation
 		const float HoriCornerTan = FMath::Tan(HalfFovH);
 		const float VertCornerTan = FMath::Tan(HalfFovV);
 
-
-		float xPct = (ColorLocation.x - HalfWidth) / HalfWidth;
-		float yPct = (ColorLocation.y - HalfHeight) / HalfHeight;
+		const float xPct = (ColorLocation.x - HalfWidth) / HalfWidth;
+		const float yPct = (ColorLocation.y - HalfHeight) / HalfHeight;
 
 		// position at z = 1m from the camera
-		float x = xPct * HoriCornerTan;
-		float y = -yPct * VertCornerTan;
-		Vector3 Direction(x, y, 1.0f);
+		const float x = xPct * HoriCornerTan;
+		const float y = -yPct * VertCornerTan;
+		const Vector3 Direction(x, y, 1.0f);
 
 		return Direction * CameraLocation.z;
 	}
@@ -482,7 +485,7 @@ FVector2D UNeoKinectManager::CameraLocationToColorPoint(FVector CameraLocation)
 		return FVector2D(0.0f, 0.0f);
 	}
 
-	Vector3 KinectLocation(
+	const Vector3 KinectLocation(
 		-CameraLocation.Y * 0.01f,
 		CameraLocation.Z * 0.01f,
 		CameraLocation.X * 0.01f);
@@ -506,7 +509,7 @@ FVector2D UNeoKinectManager::CameraLocationToDepthPoint(FVector CameraLocation)
 		return FVector2D(0.0f, 0.0f);
 	}
 
-	Vector3 KinectLocation(
+	const Vector3 KinectLocation(
 		-CameraLocation.Y * 0.01f,
 		CameraLocation.Z * 0.01f,
 		CameraLocation.X * 0.01f);
@@ -530,12 +533,12 @@ Vector3 UNeoKinectManager::ColorWithDepthFromColorOnly(const Vector2& ColorLocat
 		return Vector3(0.0f);
 	}
 
-	uint16 Depth = Kinect->SampleDepthFromColorCoords(ColorLocation);
+	const uint16 Depth = Kinect->SampleDepthFromColorCoords(ColorLocation);
 
 	if (!Kinect || Depth == 0 /* invalid depth */)
 		return Vector3(0.0f);
-	
-	float DepthMeters = static_cast<float>(Depth) * 0.001f;
+
+	const float DepthMeters = static_cast<float>(Depth) * 0.001f;
 	
 	static const FrameDescription ColorDescription = Kinect->GetFrameDescription(KinectFrameType::Color);
 	const float HalfWidth = static_cast<float>(ColorDescription.width >> 1); // half frame width
@@ -545,13 +548,13 @@ Vector3 UNeoKinectManager::ColorWithDepthFromColorOnly(const Vector2& ColorLocat
 	const float HoriCornerTan = FMath::Tan(HalfFovH);
 	const float VertCornerTan = FMath::Tan(HalfFovV);
 
-	float xPct = (ColorLocation.x - HalfWidth) / HalfWidth;
-	float yPct = (ColorLocation.y - HalfHeight) / HalfHeight;
+	const float xPct = (ColorLocation.x - HalfWidth) / HalfWidth;
+	const float yPct = (ColorLocation.y - HalfHeight) / HalfHeight;
 
 	// normal axis
-	float xNormal = FMath::Sin(FMath::Atan(xPct * HoriCornerTan));
-	float yNormal = FMath::Sin(FMath::Atan(-yPct * VertCornerTan));
-	Vector3 Direction(
+	const float xNormal = FMath::Sin(FMath::Atan(xPct * HoriCornerTan));
+	const float yNormal = FMath::Sin(FMath::Atan(-yPct * VertCornerTan));
+	const Vector3 Direction(
 		xNormal,
 		yNormal,
 		FMath::Sqrt(1 - (yNormal * yNormal + xNormal * xNormal))
@@ -568,8 +571,9 @@ FVector2D UNeoKinectManager::DepthPointToColorPoint(FVector2D DepthPoint)
 			TEXT("Tried to call %s without initializing the sensor"), *CUR_CLASS_FUNC);
 		return FVector2D(0.0f, 0.0f);
 	}
-	
-	Vector2 Depth(DepthPoint.X, DepthPoint.Y), ColorPoint;
+
+	const Vector2 Depth(DepthPoint.X, DepthPoint.Y);
+	Vector2 ColorPoint;
 
 	if (Kinect->GetRemappedPoint(KinectCoordinateSpace::Depth, KinectCoordinateSpace::Color,
 		Depth, ColorPoint))
@@ -588,8 +592,8 @@ FVector UNeoKinectManager::DepthPointToCameraLocation(FVector2D DepthPoint)
 			TEXT("Tried to call %s without initializing the sensor"), *CUR_CLASS_FUNC);
 		return FVector(0.0f);
 	}
-	
-	Vector2 Depth(DepthPoint.X, DepthPoint.Y);
+
+	const Vector2 Depth(DepthPoint.X, DepthPoint.Y);
 	Vector3 Result;
 
 	if (Kinect->GetRemappedPoint(KinectCoordinateSpace::Depth, KinectCoordinateSpace::Camera,
@@ -610,7 +614,7 @@ FVector2D UNeoKinectManager::ColorPointToDepthPoint(FVector2D ColorPoint)
 		return FVector2D(0.0f, 0.0f);
 	}
 
-	Vector2 Color(ColorPoint.X, ColorPoint.Y);
+	const Vector2 Color(ColorPoint.X, ColorPoint.Y);
 	Vector2 DepthPoint;
 
 	if (!Kinect->GetRemappedPoint(KinectCoordinateSpace::Color, KinectCoordinateSpace::Depth,
@@ -635,7 +639,7 @@ FVector2D UNeoKinectManager::GetFrameFieldOfView(EKinectFrame FrameType)
 			TEXT("Tried to call %s without initializing the sensor"), *CUR_CLASS_FUNC);
 		return FVector2D(0.0f, 0.0f);
 	}
-	FrameDescription fd = FramesData[(int32)FrameType].GetFrameDescription(Kinect);
+	const FrameDescription fd = FramesData[static_cast<int32>(FrameType)].GetFrameDescription(Kinect);
 
 	return FVector2D(fd.horizontalFieldOfView, fd.verticalFieldOfView);
 }
@@ -649,26 +653,26 @@ FIntPoint UNeoKinectManager::GetFrameSize(EKinectFrame FrameType)
 		return FIntPoint(0, 0);
 	}
 
-	const FFrameTextureData& Frame = FramesData[(int32)FrameType];
+	const FFrameTextureData& Frame = FramesData[static_cast<int32>(FrameType)];
 	if (Frame.bRemapped)
 	{
 		return FIntPoint(Frame.Width, Frame.Height);
 	}
 	else
 	{
-		FrameDescription fd = Frame.GetFrameDescription(Kinect);
+		const FrameDescription fd = Frame.GetFrameDescription(Kinect);
 
 		return FIntPoint(fd.width, fd.height);
 	}
 }
 
-UTexture* UNeoKinectManager::SetUseFrame(EKinectFrame FrameType, bool bEnable)
+UTextureRenderTarget2D* UNeoKinectManager::SetUseFrame(EKinectFrame FrameType, bool bEnable)
 {
 	if (!Kinect)
 	{
 		UE_LOG(NeoKinectLog, Warning,
 			TEXT("Tried to call %s without initializing the sensor"), *CUR_CLASS_FUNC);
-		return NULL;
+		return nullptr;
 	}
 
 	FFrameTextureData& FrameData = FramesData[static_cast<uint32>(FrameType)];
@@ -682,7 +686,7 @@ UTexture* UNeoKinectManager::SetUseFrame(EKinectFrame FrameType, bool bEnable)
 		if (FramesData[static_cast<int32>(FrameType)].bRemapped)
 		{
 			if (!Kinect->SetUseFrame(KinectFrameType::Depth)) // if depth frame fails to be used
-				return NULL;
+				return nullptr;
 		}
 
 		// configures and allocate the buffer memory
@@ -693,12 +697,12 @@ UTexture* UNeoKinectManager::SetUseFrame(EKinectFrame FrameType, bool bEnable)
 		if (!ThreadBuffer.AllocateBuffers(FrameData.BufferSize))
 		{
 			UE_LOG(NeoKinectLog, Error, TEXT("Failed to allocate memory for texture buffer!"));
-			return NULL;
+			return nullptr;
 		}
 
 		// alert Kinect of frame usage
 		if (!Kinect->SetUseFrame(FrameData.KFrameType))
-			return NULL;
+			return nullptr;
 
 		// create the GPU texture
 		FrameData.Texture = CreateTexture(
@@ -711,25 +715,25 @@ UTexture* UNeoKinectManager::SetUseFrame(EKinectFrame FrameType, bool bEnable)
 	{
 		// Free unused resources
 		ReleaseFrameResources(FrameData);
-		return NULL;
+		return nullptr;
 	}
 }
 
 bool UNeoKinectManager::GetIsUsingFrame(EKinectFrame FrameType)
 {
-	FFrameTextureData& FrameData = FramesData[(uint32)FrameType];
+	const FFrameTextureData& FrameData = FramesData[static_cast<uint32>(FrameType)];
 
 	return FrameData.IsTextureValid();
 }
 
-UTexture* UNeoKinectManager::GetFrame(EKinectFrame FrameType)
+UTextureRenderTarget2D* UNeoKinectManager::GetFrame(EKinectFrame FrameType)
 {
-	FFrameTextureData& FrameData = FramesData[(uint32)FrameType];
+	const FFrameTextureData& FrameData = FramesData[static_cast<uint32>(FrameType)];
 	
 	if (FrameData.IsTextureValid())
 		return FrameData.Texture;
 
-	return NULL;
+	return nullptr;
 }
 
 float UNeoKinectManager::GetDepthFramePixel(FVector2D Coordinate)
@@ -787,7 +791,7 @@ FLinearColor UNeoKinectManager::GetColorFramePixel(FVector2D Coordinate)
 	}
 
 	ThreadBuffer.Lock();
-	FLinearColor Color = *(reinterpret_cast<const FColor*>(
+	const FLinearColor Color = *(reinterpret_cast<const FColor*>(
 		Buffer + 4 * (ColorWidth * static_cast<uint32>(Coordinate.Y) + static_cast<int32>(Coordinate.X))
 		));
 	ThreadBuffer.Unlock();
@@ -841,25 +845,25 @@ UNeoKinectBody* UNeoKinectManager::GetNearestBody(bool& HasBody)
 	{
 		UE_LOG(NeoKinectLog, Warning,
 			TEXT("Tried to call %s without initializing the sensor"), *CUR_CLASS_FUNC);
-		return NULL;
+		return nullptr;
 	}
 
 	SetUseBodyFrame();
 
-	UNeoKinectBody* nBody = NULL;
+	UNeoKinectBody* nBody = nullptr;
 	for (UNeoKinectBody*& Body : Bodies)
 	{
 		if (Body->bIsTracked)
 		{
 			// if no nearest body
-			if (nBody == NULL) nBody = Body;
+			if (nBody == nullptr) nBody = Body;
 			// else, if current body's hip is nearest from the sensor than nBody's
-			else if (nBody->Joints[(int32)EKinectJointType::SpineBase].Location.Size() >
-				Body->Joints[(int32)EKinectJointType::SpineBase].Location.Size())
+			else if (nBody->Joints[static_cast<int32>(EKinectJointType::SpineBase)].Location.Size() >
+				Body->Joints[static_cast<int32>(EKinectJointType::SpineBase)].Location.Size())
 				nBody = Body;
 		}
 	}
-	HasBody = nBody != NULL;
+	HasBody = nBody != nullptr;
 	return nBody;
 }
 
@@ -900,12 +904,12 @@ UNeoKinectBody* UNeoKinectManager::IndexToBody(const int32 Index)
 
 int32 UNeoKinectManager::JointToIndex(const EKinectJointType Joint)
 {
-	return (int32)Joint;
+	return static_cast<int32>(Joint);
 }
 
 EKinectJointType UNeoKinectManager::IndexToJoint(const int32 Index)
 {
-	return (EKinectJointType)(Index >= KinectJointCount || Index < 0 ? 0 : Index);
+	return static_cast<EKinectJointType>(Index >= KinectJointCount || Index < 0 ? 0 : Index);
 }
 #pragma endregion Bodies_Joints
 
@@ -956,24 +960,24 @@ UNeoKinectFace* UNeoKinectManager::GetNearestFace(bool& HasAnyFace)
 	{
 		UE_LOG(NeoKinectLog, Warning,
 			TEXT("Tried to call %s without initializing the sensor"), *CUR_CLASS_FUNC);
-		return NULL;
+		return nullptr;
 	}
 
 	SetUseFaceFrame();
 
-	UNeoKinectFace* nFace = NULL;
+	UNeoKinectFace* nFace = nullptr;
 	for (UNeoKinectFace*& Face : Faces)
 	{
 		if (Face->bIsTracked)
 		{
 			// if no nearest face
-			if (nFace == NULL) nFace = Face;
+			if (nFace == nullptr) nFace = Face;
 			// else, if current face's pivot is nearest from the sensor than nFace's
 			else if (nFace->Location.Size() > Face->Location.Size())
 				nFace = Face;
 		}
 	}
-	HasAnyFace = nFace != NULL;
+	HasAnyFace = nFace != nullptr;
 	return nFace;
 }
 
@@ -1086,17 +1090,36 @@ bool UNeoKinectManager::IsUsingColor()
 */
 #pragma region Textures
 
-UTexture* UNeoKinectManager::CreateTexture(int32 Width, int32 Height, EPixelFormat PixelFormat, bool sRGB)
+UTextureRenderTarget2D* UNeoKinectManager::CreateTexture(int32 Width, int32 Height, EPixelFormat PixelFormat, bool sRGB)
 {
 	// Create the texture
-	UDynamicTexture2D* Texture = UDynamicTexture2D::Create(Width, Height, PixelFormat);
+	UTextureRenderTarget2D* Texture = NewObject<UTextureRenderTarget2D>(GetTransientPackage(), NAME_None, EObjectFlags::RF_Transient);
+	check(Texture);
 #if WITH_EDITORONLY_DATA
 	Texture->MipGenSettings = TMGS_NoMipmaps;
 #endif // WITH_EDITORONLY_DATA
-	Texture->CompressionSettings = TextureCompressionSettings::TC_VectorDisplacementmap;
-	Texture->SRGB = sRGB ? 1 : 0;
-	Texture->AddToRoot();
+	Texture->OverrideFormat = PixelFormat;
+	Texture->RenderTargetFormat = [&PixelFormat, &sRGB]()
+	{
+		switch (PixelFormat)
+		{
+		case EPixelFormat::PF_G8: return ETextureRenderTargetFormat::RTF_R8;
+		case EPixelFormat::PF_G16: return ETextureRenderTargetFormat::RTF_R16f;
+		case EPixelFormat::PF_B8G8R8A8:
+			if (sRGB)
+				return ETextureRenderTargetFormat::RTF_RGBA8_SRGB;
+			return ETextureRenderTargetFormat::RTF_RGBA8;
+
+		default:;
+		}
+		return ETextureRenderTargetFormat::RTF_RGBA8;
+	}();
+	Texture->bAutoGenerateMips = false;
+	Texture->SRGB = sRGB;
+	Texture->bForceLinearGamma = !sRGB;
+	Texture->InitAutoFormat(Width, Height);
 	Texture->UpdateResource();
+	Texture->AddToRoot();
 
 	return Texture;
 }
@@ -1108,7 +1131,7 @@ void UNeoKinectManager::UpdateFrames()
 	if (Kinect)
 	{
 		// Update the textures whose buffer is new
-		static constexpr int32 n = static_cast<int32>(EKinectFrame::Count);
+		constexpr int32 n = static_cast<int32>(EKinectFrame::Count);
 		for (int32 i = 0; i < n; ++i)
 		{
 			FFrameTextureData& FrameData(FramesData[static_cast<uint64>(i)]);
@@ -1118,7 +1141,15 @@ void UNeoKinectManager::UpdateFrames()
 			if (Buffer && FrameData.IsTextureValid())
 			{
 				ThreadBuffer.Lock();
-				static_cast<UDynamicTexture2D*>(FrameData.Texture)->UpdateContents(Buffer, FrameData.BufferSize);
+				{
+					RHIUpdateTexture2D(
+						FrameData.Texture->GetRenderTargetResource()->GetRenderTargetTexture(),
+						0,
+						FUpdateTextureRegion2D(0, 0, 0, 0, FrameData.Width, FrameData.Height),
+						FrameData.Width * FrameData.PixelSize,
+						Buffer
+						);
+				}
 				ThreadBuffer.Unlock();
 			}
 		}
@@ -1132,11 +1163,21 @@ void UNeoKinectManager::ReleaseFrameResources(FFrameTextureData& FrameData)
 	switch (FrameData.KFrameType)
 	{
 	case KinectFrameType::Color:
-		if (!IsUsingColor() && Kinect) Kinect->SetUseFrame(KinectFrameType::Color, false);
+		if (!IsUsingColor() && Kinect)
+			Kinect->SetUseFrame(KinectFrameType::Color, false);
+		break;
+
 	case KinectFrameType::Depth:
-		if (!IsUsingDepth() && Kinect) Kinect->SetUseFrame(KinectFrameType::Depth, false);
+		if (!IsUsingDepth() && Kinect)
+			Kinect->SetUseFrame(KinectFrameType::Depth, false);
+		break;
+
 	case KinectFrameType::BodyIndex:
-		if (!IsUsingBodyIndex() && Kinect) Kinect->SetUseFrame(KinectFrameType::BodyIndex, false);
+		if (!IsUsingBodyIndex() && Kinect)
+			Kinect->SetUseFrame(KinectFrameType::BodyIndex, false);
+
+	default:
+		break;
 	}
 }
 
